@@ -1,4 +1,5 @@
 pyTelegramBotAPI
 fastapi
 uvicorn
-requests
+yt-dlp
+pytubefix

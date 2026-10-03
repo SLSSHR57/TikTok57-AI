@@ -1,0 +1,23 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,ofont.ru_Montserrat,62,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,0,0,1,8,0,2,20,20,450,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:00:00.60,Default,,0,0,0,,{\pos(540,1470)\an5}{\c&H0000D5FF\fscx100\fscy100\t(0,100,\fscx115\fscy115)}Брат,{\c&H00FFFFFF\fscx100\fscy100}
+Dialogue: 0,0:00:00.96,0:00:01.04,Default,,0,0,0,,{\pos(540,1470)\an5}{\c&H0000D5FF\fscx100\fscy100\t(0,100,\fscx115\fscy115)}я{\c&H00FFFFFF\fscx100\fscy100}
+Dialogue: 0,0:00:01.04,0:00:01.24,Default,,0,0,0,,{\pos(540,1470)\an5}{\c&H0000D5FF\fscx100\fscy100\t(0,100,\fscx115\fscy115)}тебе{\c&H00FFFFFF\fscx100\fscy100}
+Dialogue: 0,0:00:01.24,0:00:01.80,Default,,0,0,0,,{\pos(540,1470)\an5}{\c&H0000D5FF\fscx100\fscy100\t(0,100,\fscx115\fscy115)}сверху{\c&H00FFFFFF\fscx100\fscy100}
+Dialogue: 0,0:00:01.80,0:00:07.31,Default,,0,0,0,,{\pos(540,1470)\an5}{\c&H0000D5FF\fscx100\fscy100\t(0,100,\fscx115\fscy115)}накину.{\c&H00FFFFFF\fscx100\fscy100}
+Dialogue: 0,0:00:07.73,0:00:07.93,Default,,0,0,0,,{\pos(540,1470)\an5}{\c&H0000D5FF\fscx100\fscy100\t(0,100,\fscx115\fscy115)}Сейчас{\c&H00FFFFFF\fscx100\fscy100}
+Dialogue: 0,0:00:07.93,0:00:08.19,Default,,0,0,0,,{\pos(540,1470)\an5}{\c&H0000D5FF\fscx100\fscy100\t(0,100,\fscx115\fscy115)}только{\c&H00FFFFFF\fscx100\fscy100}
+Dialogue: 0,0:00:08.19,0:00:08.65,Default,,0,0,0,,{\pos(540,1470)\an5}{\c&H0000D5FF\fscx100\fscy100\t(0,100,\fscx115\fscy115)}зайдем{\c&H00FFFFFF\fscx100\fscy100}
+Dialogue: 0,0:00:08.65,0:00:08.73,Default,,0,0,0,,{\pos(540,1470)\an5}{\c&H0000D5FF\fscx100\fscy100\t(0,100,\fscx115\fscy115)}в{\c&H00FFFFFF\fscx100\fscy100}
+Dialogue: 0,0:00:08.73,0:00:08.89,Default,,0,0,0,,{\pos(540,1470)\an5}{\c&H0000D5FF\fscx100\fscy100\t(0,100,\fscx115\fscy115)}одно{\c&H00FFFFFF\fscx100\fscy100}
+Dialogue: 0,0:00:08.89,0:00:09.23,Default,,0,0,0,,{\pos(540,1470)\an5}{\c&H0000D5FF\fscx100\fscy100\t(0,100,\fscx115\fscy115)}место,{\c&H00FFFFFF\fscx100\fscy100}
+Dialogue: 0,0:00:09.55,0:00:10.35,Default,,0,0,0,,{\pos(540,1470)\an5}{\c&H0000D5FF\fscx100\fscy100\t(0,100,\fscx115\fscy115)}отпразднуем.{\c&H00FFFFFF\fscx100\fscy100}

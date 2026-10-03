@@ -1,17 +1,15 @@
 import os
 import json
 import uuid
-import asyncio
 import threading
-from typing import List
+import requests
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-import yt_dlp
-from telebot import TeleBot, types
+from telebot import TeleBot
 
-# Твой токен уже на месте
+# Токен на месте
 BOT_TOKEN = "8846880400:AAHGhCWXJagGcmoTaPg4tkJCZ-QNk436lW8"
 DOWNLOAD_DIR = "downloads"
 TASKS_FILE = "telegram_tasks.json"
@@ -44,6 +42,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+def index():
+    return "Server is running!"
+
 @app.get("/tasks")
 def get_tasks():
     return load_tasks()
@@ -55,55 +57,66 @@ def get_file(filename: str):
         return FileResponse(file_path, media_type="video/mp4", filename=filename)
     raise HTTPException(status_code=404, detail="Файл не найден")
 
-# --- СКАЧИВАНИЕ БЕЗ КУКОВ (МАГИЯ ANDROID) ---
+# --- СКАЧИВАНИЕ ЧЕРЕЗ СЕКРЕТНЫЙ API (БЕЗ БАНОВ) ---
 def download_video(video_url: str, output_path: str) -> str:
-    ydl_opts = {
-        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-        'outtmpl': output_path,
-        'merge_output_format': 'mp4',
-        'quiet': True,
-        'no_warnings': True,
-        # ВЕСЬ СЕКРЕТ ЗДЕСЬ: Притворяемся смартфоном. Никакого 'web'.
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['android', 'ios']
-            }
-        }
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Origin": "https://cobalt.tools",
+        "Referer": "https://cobalt.tools/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+    }
+    data = {
+        "url": video_url,
+        "vQuality": "1080",
+        "filenamePattern": "basic"
     }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([video_url])
-
-    if os.path.exists(output_path):
+    try:
+        # 1. Просим сервера Cobalt обработать ссылку
+        res = requests.post("https://api.cobalt.tools/api/json", json=data, headers=headers, timeout=15)
+        res.raise_for_status()
+        
+        resp_json = res.json()
+        if resp_json.get("status") == "error":
+            raise Exception(resp_json.get("text", "Неизвестная ошибка API Cobalt"))
+            
+        download_url = resp_json.get("url")
+        if not download_url:
+            raise Exception("Cobalt не отдал ссылку на файл.")
+            
+        # 2. Скачиваем чистый mp4 файл
+        video_res = requests.get(download_url, stream=True, timeout=60)
+        video_res.raise_for_status()
+        
+        with open(output_path, "wb") as f:
+            for chunk in video_res.iter_content(chunk_size=1024*1024):
+                if chunk:
+                    f.write(chunk)
+                    
         return output_path
-
-    base, _ = os.path.splitext(output_path)
-    for ext in ['.mkv', '.webm', '.mp4']:
-        candidate = base + ext
-        if os.path.exists(candidate):
-            os.rename(candidate, output_path)
-            return output_path
-
-    raise Exception("Файл не был сохранен.")
+        
+    except Exception as e:
+        raise Exception(f"{e}")
 
 # --- ТЕЛЕГРАМ-БОТ ---
 bot = TeleBot(BOT_TOKEN)
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "👋 Привет! Кидай ссылку (YouTube / TikTok), качаю без куков.")
+    bot.reply_to(message, "👋 Привет! Кидай ссылку. Качаю через внешний API в обход любых блокировок Ютуба.")
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     url = message.text.strip()
-    if not (url.startswith("http://") or url.startswith("https://")):
+    if not (url.startswith("http://") or url.startswith("https://") or url.startswith("youtu")):
         bot.reply_to(message, "⚠️ Это не похоже на ссылку.")
         return
 
     user_id = message.from_user.id
     username = message.from_user.username or message.from_user.first_name or f"id_{user_id}"
 
-    status_msg = bot.reply_to(message, "⏳ Обхожу защиту Ютуба и начинаю загрузку...")
+    status_msg = bot.reply_to(message, "⏳ Обхожу блокировку Ютуба и вытягиваю видео...")
 
     filename = f"video_{uuid.uuid4().hex[:8]}.mp4"
     local_path = os.path.join(DOWNLOAD_DIR, filename)
@@ -111,7 +124,6 @@ def handle_message(message):
     try:
         download_video(url, local_path)
 
-        # Сохраняем в самое начало списка, чтобы новое видео было первым
         tasks = load_tasks()
         tasks.insert(0, {
             "user_id": user_id,
@@ -129,7 +141,7 @@ def handle_message(message):
 
     except Exception as e:
         bot.edit_message_text(
-            f"❌ Ошибка: {e}",
+            f"❌ Ошибка скачивания: {e}",
             chat_id=status_msg.chat.id,
             message_id=status_msg.message_id
         )

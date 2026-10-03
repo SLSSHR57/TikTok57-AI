@@ -11,14 +11,13 @@ import uvicorn
 import yt_dlp
 from telebot import TeleBot, types
 
-# --- НАСТРОЙКИ И ДИРЕКТОРИИ ---
+# Твой токен уже на месте
 BOT_TOKEN = "8846880400:AAHGhCWXJagGcmoTaPg4tkJCZ-QNk436lW8"
 DOWNLOAD_DIR = "downloads"
 TASKS_FILE = "telegram_tasks.json"
 
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-# Инициализация хранилища задач
 if not os.path.exists(TASKS_FILE):
     with open(TASKS_FILE, "w", encoding="utf-8") as f:
         json.dump([], f)
@@ -34,7 +33,7 @@ def save_tasks(tasks: list):
     with open(TASKS_FILE, "w", encoding="utf-8") as f:
         json.dump(tasks, f, ensure_ascii=False, indent=2)
 
-# --- FASTAPI СЕРВЕР ДЛЯ СВЯЗИ С APP_2.PY ---
+# --- FASTAPI СЕРВЕР ---
 app = FastAPI(title="TikTok57 Remote Bot API")
 
 app.add_middleware(
@@ -56,19 +55,18 @@ def get_file(filename: str):
         return FileResponse(file_path, media_type="video/mp4", filename=filename)
     raise HTTPException(status_code=404, detail="Файл не найден")
 
-# --- СКАЧИВАНИЕ ВИДЕО (YT-DLP С КУКИ-ФАЙЛОМ) ---
+# --- СКАЧИВАНИЕ БЕЗ КУКОВ (МАГИЯ ANDROID) ---
 def download_video(video_url: str, output_path: str) -> str:
     ydl_opts = {
         'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
         'outtmpl': output_path,
         'merge_output_format': 'mp4',
-        'cookiefile': 'cookies.txt',  # Обход проверки "Sign in to confirm you’re not a bot"
-        'socket_timeout': 30,
-        'quiet': False,
-        'no_warnings': False,
+        'quiet': True,
+        'no_warnings': True,
+        # ВЕСЬ СЕКРЕТ ЗДЕСЬ: Притворяемся смартфоном. Никакого 'web'.
         'extractor_args': {
             'youtube': {
-                'player_client': ['ios', 'android', 'web']
+                'player_client': ['android', 'ios']
             }
         }
     }
@@ -79,7 +77,6 @@ def download_video(video_url: str, output_path: str) -> str:
     if os.path.exists(output_path):
         return output_path
 
-    # Проверка возможных альтернативных расширений после слияния
     base, _ = os.path.splitext(output_path)
     for ext in ['.mkv', '.webm', '.mp4']:
         candidate = base + ext
@@ -94,22 +91,19 @@ bot = TeleBot(BOT_TOKEN)
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(
-        message,
-        "👋 Привет! Отправь мне ссылку на видео (YouTube / Shorts), и я подготовлю его для нарезки в TikTok Ai 57."
-    )
+    bot.reply_to(message, "👋 Привет! Кидай ссылку (YouTube / TikTok), качаю без куков.")
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     url = message.text.strip()
     if not (url.startswith("http://") or url.startswith("https://")):
-        bot.reply_to(message, "⚠️ Пожалуйста, отправь корректную ссылку на видео.")
+        bot.reply_to(message, "⚠️ Это не похоже на ссылку.")
         return
 
     user_id = message.from_user.id
     username = message.from_user.username or message.from_user.first_name or f"id_{user_id}"
 
-    status_msg = bot.reply_to(message, "⏳ Начинаю скачивание видео с обходом защиты...")
+    status_msg = bot.reply_to(message, "⏳ Обхожу защиту Ютуба и начинаю загрузку...")
 
     filename = f"video_{uuid.uuid4().hex[:8]}.mp4"
     local_path = os.path.join(DOWNLOAD_DIR, filename)
@@ -117,40 +111,35 @@ def handle_message(message):
     try:
         download_video(url, local_path)
 
-        # Сохранение задачи в базу для приложения
+        # Сохраняем в самое начало списка, чтобы новое видео было первым
         tasks = load_tasks()
-        new_task = {
+        tasks.insert(0, {
             "user_id": user_id,
             "username": username,
             "url": url,
-            "filename": filename,
-            "local_path": local_path
-        }
-        tasks.append(new_task)
+            "filename": filename
+        })
         save_tasks(tasks)
 
         bot.edit_message_text(
-            f"✅ Видео успешно скачано!\nОно уже появилось в веб-интерфейсе TikTok Ai 57 в списке очереди.",
+            f"✅ Готово! Открывай TikTok Ai 57, видео уже там.",
             chat_id=status_msg.chat.id,
             message_id=status_msg.message_id
         )
 
     except Exception as e:
         bot.edit_message_text(
-            f"❌ Ошибка скачивания: {e}\nУбедись, что файл cookies.txt актуален.",
+            f"❌ Ошибка: {e}",
             chat_id=status_msg.chat.id,
             message_id=status_msg.message_id
         )
 
-# --- ЗАПУСК БОТА И API ---
 def run_bot():
     bot.infinity_polling()
 
 if __name__ == "__main__":
-    # Запуск Telegram-бота в отдельном потоке
     bot_thread = threading.Thread(target=run_bot, daemon=True)
     bot_thread.start()
-
-    # Запуск веб-сервера FastAPI на порту 8000 (или из переменной PORT для Render)
-    port = int(os.getenv("PORT", 8000))
+    
+    port = int(os.getenv("PORT", 10000))
     uvicorn.run(app, host="0.0.0.0", port=port)
